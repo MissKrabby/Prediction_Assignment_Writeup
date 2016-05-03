@@ -1,0 +1,45 @@
+---
+title: "Prediction_Assignment_Writeup"
+author: "ZRR"
+date: "2016年5月2日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## data pre-processing
+
+Load data and set na.strings. Missing  values can't be used in the model fitting, so we select columns that have no NA in them as predictors. Then, create train and test sets with "pml-training.csv".
+
+```{r}
+library(caret)
+training0 <- read.csv("pml-training.csv",stringsAsFactors = FALSE,
+                  na.strings = c("NA","","#DIV/0!"))
+ifNA <- apply(training0[,-c(1:6,160)],2,function(x) sum(is.na(x)) > 0)
+predictors <-names(ifNA[ifNA == FALSE])
+training0 <- training0[,c(predictors,"classe")]
+training0$classe <- factor(training0$classe)
+
+inTrain <- createDataPartition(y=training0$classe,p=0.75, list=FALSE)
+training <- training0[inTrain,]
+testing <- training0[-inTrain,]
+```
+
+## model building
+
+Run boosting model on the training data, print model summary. Predit test outcomes using the model and print the confusion matrix. Calculate the accuracy.
+
+```{r}
+modFit1 <- train(classe ~ ., method="gbm",
+                data=training,verbose=FALSE)
+print(modFit1)
+pred1 <- predict(modFit1,testing)
+table(pred = pred1, true = testing$classe)
+
+accuracy <- sum(diag(table(pred1,testing$classe)))/nrow(testing)
+print(paste("accuracy = ",accuracy,sep = ""))
+```
+
+
